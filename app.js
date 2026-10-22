@@ -11,6 +11,8 @@ const BUSINESS_CATEGORIES = ['創作材料器材', '工作室/場地', '展覽/�
 const PAYMENT_METHODS = ['簽帳卡', '信用卡', '現金', '轉帳'];
 
 const STORAGE_KEY = 'uk-expenses.entries.v1';
+const SETTINGS_KEY = 'uk-expenses.settings.v1';
+const EMERGENCY_MONTHS = 12; // 緊急預備金：收入不穩期間要留 12 個月支出
 const LAST_PAYMENT_KEY = 'uk-expenses.lastPayment';
 
 // ---- 資料存取 ----
@@ -29,6 +31,20 @@ function saveEntries(entries) {
 }
 
 let entries = loadEntries();
+
+// 設定：{ budgetPence, cashPence, cashDate }，沒設定的欄位是 null
+function loadSettings() {
+  try {
+    return { budgetPence: null, cashPence: null, cashDate: null, ...JSON.parse(localStorage.getItem(SETTINGS_KEY)) };
+  } catch {
+    return { budgetPence: null, cashPence: null, cashDate: null };
+  }
+}
+let settings = loadSettings();
+
+function saveSettings() {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
 
 // ---- 小工具 ----
 const $ = (id) => document.getElementById(id);
@@ -64,6 +80,15 @@ function monthKey() {
 }
 
 function render() {
+  renderLedger();
+  renderOverview();
+}
+
+function sumOf(list, type) {
+  return list.filter((e) => e.type === type).reduce((s, e) => s + e.pence, 0);
+}
+
+function renderLedger() {
   $('monthTitle').textContent = `${viewYear}.${String(viewMonth).padStart(2, '0')}`;
 
   const monthEntries = entries
@@ -75,6 +100,9 @@ function render() {
   $('sumOut').textContent = formatPounds(out);
   $('sumIn').textContent = formatPounds(inc);
   fitSummary();
+
+  renderBudget($('budgetBox'), out);
+  renderCategories($('catBox'), monthEntries);
 
   const list = $('list');
   list.innerHTML = '';
@@ -101,6 +129,172 @@ function render() {
   }
 }
 
+// ---- 預算進度條 ----
+function renderBudget(box, spent) {
+  box.innerHTML = '';
+  if (!settings.budgetPence) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'link-btn';
+    b.textContent = '＋ 設定每月預算';
+    b.addEventListener('click', openSettings);
+    box.append(b);
+    return;
+  }
+  const budget = settings.budgetPence;
+  const ratio = spent / budget;
+  const over = spent > budget;
+
+  const head = document.createElement('div');
+  head.className = 'row-between label';
+  head.innerHTML = `<span>預算 ${formatPounds(budget)}</span><span>已用 ${Math.round(ratio * 100)}%</span>`;
+
+  const track = document.createElement('div');
+  track.className = 'bar-track';
+  const fill = document.createElement('div');
+  fill.className = 'bar-fill' + (over ? ' over' : '');
+  fill.style.width = Math.min(ratio, 1) * 100 + '%';
+  track.append(fill);
+
+  const foot = document.createElement('p');
+  foot.className = 'budget-left' + (over ? ' over' : '');
+  foot.textContent = over ? `超支 ${formatPounds(spent - budget)}` : `還剩 ${formatPounds(budget - spent)}`;
+
+  box.append(head, track, foot);
+}
+
+// ---- 類別統計：這個月每個支出類別各花多少 ----
+function renderCategories(box, monthEntries) {
+  box.innerHTML = '';
+  const totals = new Map();
+  for (const e of monthEntries) {
+    if (e.type !== '支出') continue;
+    totals.set(e.category, (totals.get(e.category) || 0) + e.pence);
+  }
+  if (!totals.size) return;
+  const rows = [...totals].sort((a, b) => b[1] - a[1]);
+  const max = rows[0][1];
+  const all = rows.reduce((s, [, v]) => s + v, 0);
+
+  const title = document.createElement('div');
+  title.className = 'label block-title';
+  title.textContent = '類別 · BY CATEGORY';
+  box.append(title);
+
+  rows.forEach(([name, pence], i) => {
+    const row = document.createElement('div');
+    row.className = 'cat-row';
+    const top = document.createElement('div');
+    top.className = 'row-between';
+    const left = document.createElement('span');
+    left.textContent = name;
+    const right = document.createElement('span');
+    right.className = 'cat-amt';
+    right.innerHTML = `${formatPounds(pence)}<span class="label"> ${Math.round((pence / all) * 100)}%</span>`;
+    top.append(left, right);
+    const track = document.createElement('div');
+    track.className = 'bar-track thin';
+    const fill = document.createElement('div');
+    fill.className = 'bar-fill' + (i === 0 ? '' : ' muted'); // 花最多的那類用招牌紫色
+    fill.style.width = (pence / max) * 100 + '%';
+    track.append(fill);
+    row.append(top, track);
+    box.append(row);
+  });
+}
+
+// ---- 總覽：目前現金、可支應月數、本月預算 ----
+// 目前現金 = 設定的餘額 ＋ 那天之後的收入 － 那天之後的支出
+function currentCash() {
+  if (settings.cashPence === null || !settings.cashDate) return null;
+  const after = entries.filter((e) => e.date > settings.cashDate);
+  return settings.cashPence + sumOf(after, '收入') - sumOf(after, '支出');
+}
+
+function formatDate(dateStr) {
+  return dateStr.replace(/-/g, '.');
+}
+
+function renderOverview() {
+  const cash = currentCash();
+  if (cash === null) {
+    $('ovCash').textContent = '—';
+    $('ovCashNote').textContent = '按右上角「設定」輸入現在的現金餘額。';
+  } else {
+    $('ovCash').textContent = (cash < 0 ? '−' : '') + formatPounds(Math.abs(cash));
+    const after = entries.filter((e) => e.date > settings.cashDate);
+    $('ovCashNote').textContent =
+      `${formatDate(settings.cashDate)} 結束時 ${formatPounds(settings.cashPence)}，` +
+      `之後收入 +${formatPounds(sumOf(after, '收入'))}、支出 −${formatPounds(sumOf(after, '支出'))}`;
+  }
+
+  const runwayEl = $('ovRunway');
+  runwayEl.classList.remove('warn');
+  if (cash === null || !settings.budgetPence) {
+    runwayEl.textContent = '—';
+    $('ovRunwayNote').textContent = '設定現金餘額和每月預算後才算得出來。';
+  } else {
+    const months = Math.max(cash, 0) / settings.budgetPence;
+    runwayEl.innerHTML = `${months.toFixed(1)}<span class="unit">個月</span>`;
+    const warn = months < EMERGENCY_MONTHS;
+    runwayEl.classList.toggle('warn', warn);
+    $('ovRunwayNote').textContent = `以每月預算 ${formatPounds(settings.budgetPence)} 計算。` +
+      (warn ? `已低於 ${EMERGENCY_MONTHS} 個月的緊急預備金。` : `緊急預備金目標是 ${EMERGENCY_MONTHS} 個月。`);
+  }
+
+  // 總覽的預算永遠看「今天這個月」
+  const now = todayString().slice(0, 7);
+  const [y, m] = now.split('-');
+  $('ovBudgetLabel').textContent = `本月預算 · ${y}.${m}`;
+  renderBudget($('ovBudget'), sumOf(entries.filter((e) => e.date.startsWith(now)), '支出'));
+}
+
+// ---- 分頁切換 ----
+function showView(id) {
+  for (const v of document.querySelectorAll('.view')) v.hidden = v.id !== id;
+  for (const t of document.querySelectorAll('.tab')) t.classList.toggle('on', t.dataset.view === id);
+  window.scrollTo(0, 0);
+  fitSummary();
+}
+for (const t of document.querySelectorAll('.tab')) t.addEventListener('click', () => showView(t.dataset.view));
+
+// ---- 設定面板 ----
+function penceToInput(p) {
+  return p === null ? '' : (p / 100).toFixed(2);
+}
+
+function openSettings() {
+  $('setBudget').value = penceToInput(settings.budgetPence);
+  $('setCash').value = penceToInput(settings.cashPence);
+  $('setCashDate').value = settings.cashDate || todayString();
+  $('settingsError').hidden = true;
+  $('settingsSheet').showModal();
+}
+
+$('settingsBtn').addEventListener('click', openSettings);
+$('settingsCancel').addEventListener('click', () => $('settingsSheet').close());
+
+$('settingsForm').addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  const err = (msg) => { $('settingsError').textContent = msg; $('settingsError').hidden = false; };
+  const budgetText = $('setBudget').value.trim();
+  const cashText = $('setCash').value.trim();
+  const budget = budgetText ? parsePence(budgetText) : null;
+  const cash = cashText ? parsePence(cashText) : null;
+  if (budgetText && !budget) return err('每月預算請輸入數字，例如 750');
+  if (cashText && cash === null) return err('現金餘額請輸入數字，例如 18000');
+  if (cashText && !$('setCashDate').value) return err('請選現金餘額的日期');
+
+  settings = {
+    budgetPence: budget,
+    cashPence: cash,
+    cashDate: cashText ? $('setCashDate').value : null,
+  };
+  saveSettings();
+  $('settingsSheet').close();
+  render();
+});
+
 // 本月合計的數字太長時縮小字級，讓它留在格子裡；支出和收入用同一個大小
 const SUMMARY_FONT_PX = 44;
 function fitSummary() {
@@ -112,6 +306,14 @@ function fitSummary() {
     if (el.offsetWidth > available) size = Math.min(size, Math.floor(SUMMARY_FONT_PX * available / el.offsetWidth));
   }
   for (const el of els) el.style.fontSize = size + 'px';
+  // 總覽的大數字也一樣，太長就縮小
+  for (const el of [$('ovCash'), $('ovRunway')]) {
+    el.style.fontSize = '';
+    const available = el.parentElement.clientWidth;
+    if (available && el.offsetWidth > available) {
+      el.style.fontSize = Math.floor(parseFloat(getComputedStyle(el).fontSize) * available / el.offsetWidth) + 'px';
+    }
+  }
 }
 
 function entryRow(e) {

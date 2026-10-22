@@ -18,6 +18,8 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- 分頁一：記帳（每個月的明細） -->
+  <section id="viewLedger" class="view">
   <header class="top">
     <button class="icon-btn" id="prevMonth" aria-label="上個月">‹</button>
     <h1 id="monthTitle">2026.10</h1>
@@ -37,6 +39,9 @@
       </div>
     </section>
 
+    <section class="block" id="budgetBox"></section>
+    <section class="block" id="catBox"></section>
+
     <section id="list" class="list" aria-live="polite"></section>
     <div id="empty" class="empty" hidden>
       <p class="line">Nothing spent. Yet.</p>
@@ -45,6 +50,66 @@
   </main>
 
   <button class="fab" id="addBtn" aria-label="新增一筆">＋</button>
+  </section>
+
+  <!-- 分頁二：總覽（現金、可支應月數、預算） -->
+  <section id="viewOverview" class="view" hidden>
+    <header class="top">
+      <h1>總覽</h1>
+      <button class="icon-btn menu-btn" id="settingsBtn">設定</button>
+    </header>
+    <main>
+      <section class="ov-block">
+        <span class="label">目前現金 · CASH</span>
+        <span class="big" id="ovCash">—</span>
+        <p class="note" id="ovCashNote"></p>
+      </section>
+      <section class="ov-block">
+        <span class="label">可支應月數 · RUNWAY</span>
+        <span class="big" id="ovRunway">—</span>
+        <p class="note" id="ovRunwayNote"></p>
+      </section>
+      <section class="ov-block">
+        <span class="label" id="ovBudgetLabel">本月預算 · BUDGET</span>
+        <div id="ovBudget"></div>
+      </section>
+    </main>
+  </section>
+
+  <!-- 下方分頁列 -->
+  <nav class="tabbar" aria-label="分頁">
+    <button type="button" class="tab on" data-view="viewLedger">記帳<span class="label">LEDGER</span></button>
+    <button type="button" class="tab" data-view="viewOverview">總覽<span class="label">OVERVIEW</span></button>
+  </nav>
+
+  <!-- 設定面板：每月預算、現金餘額 -->
+  <dialog id="settingsSheet" class="sheet">
+    <form id="settingsForm" method="dialog" autocomplete="off">
+      <div class="sheet-head">
+        <button type="button" class="text-btn" id="settingsCancel">取消</button>
+        <span class="sheet-title">設定</span>
+        <button type="submit" class="save-btn">儲存</button>
+      </div>
+
+      <label class="field">
+        <span class="label">每月預算（£）</span>
+        <input id="setBudget" inputmode="decimal" placeholder="例如 750">
+        <span class="hint">預算進度和可支應月數都用這個數字算。</span>
+      </label>
+
+      <label class="field">
+        <span class="label">現金餘額（£）</span>
+        <input id="setCash" inputmode="decimal" placeholder="打開銀行 app 看到的數字">
+      </label>
+      <label class="field">
+        <span class="label">這是哪一天結束時的餘額</span>
+        <input type="date" id="setCashDate">
+        <span class="hint">這天之後記的收入會加上去、支出會扣掉。之後想對帳，再輸入一次新的餘額和日期就好，過去的紀錄不會被改動。</span>
+      </label>
+
+      <p class="error" id="settingsError" hidden></p>
+    </form>
+  </dialog>
 
   <!-- 新增／編輯用的底部面板 -->
   <dialog id="sheet" class="sheet">

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>英鎊記帳</title>
+  <meta name="theme-color" content="#1f6f5c">
+  <!-- 讓 iPhone「加入主畫面」後以全螢幕 app 的樣子開啟 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="英鎊記帳">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <button class="icon-btn" id="prevMonth" aria-label="上個月">‹</button>
+    <h1 id="monthTitle">2026 年 10 月</h1>
+    <button class="icon-btn" id="nextMonth" aria-label="下個月">›</button>
+    <button class="icon-btn menu-btn" id="exportBtn" aria-label="匯出 CSV" title="匯出 CSV">⤓</button>
+  </header>
+
+  <main>
+    <section class="summary">
+      <div class="sum-block">
+        <span class="label">本月支出</span>
+        <span class="value" id="sumOut">£0.00</span>
+      </div>
+      <div class="sum-block">
+        <span class="label">本月收入</span>
+        <span class="value income" id="sumIn">£0.00</span>
+      </div>
+    </section>
+
+    <section id="list" class="list" aria-live="polite"></section>
+    <p id="empty" class="empty" hidden>這個月還沒有紀錄。<br>按右下角的 ＋ 記第一筆。</p>
+  </main>
+
+  <button class="fab" id="addBtn" aria-label="新增一筆">＋</button>
+
+  <!-- 新增／編輯用的底部面板 -->
+  <dialog id="sheet" class="sheet">
+    <form id="form" method="dialog" autocomplete="off">
+      <div class="sheet-head">
+        <button type="button" class="text-btn" id="cancelBtn">取消</button>
+        <div class="segmented" id="typeSeg" role="radiogroup" aria-label="類型">
+          <button type="button" data-value="支出" class="on">支出</button>
+          <button type="button" data-value="收入">收入</button>
+        </div>
+        <button type="submit" class="text-btn strong" id="saveBtn">儲存</button>
+      </div>
+
+      <label class="amount-row">
+        <span class="currency">£</span>
+        <input id="amount" inputmode="decimal" placeholder="0.00" aria-label="金額">
+      </label>
+
+      <div class="field">
+        <span class="field-label">類別</span>
+        <div class="chips" id="categoryChips"></div>
+      </div>
+
+      <div class="field">
+        <span class="field-label">付款方式</span>
+        <div class="segmented wide" id="paySeg"></div>
+      </div>
+
+      <div class="field two">
+        <label>
+          <span class="field-label">日期</span>
+          <input type="date" id="date">
+        </label>
+        <label class="biz">
+          <input type="checkbox" id="business">
+          <span>業務成本</span>
+        </label>
+      </div>
+
+      <label class="field">
+        <span class="field-label">說明（可不填）</span>
+        <input id="note" placeholder="例如：Tesco 買菜">
+      </label>
+
+      <p class="error" id="error" hidden></p>
+      <button type="button" class="delete-btn" id="deleteBtn" hidden>刪除這筆</button>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

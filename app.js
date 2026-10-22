@@ -298,9 +298,9 @@ $('deleteBtn').addEventListener('click', () => {
 $('cancelBtn').addEventListener('click', closeSheet);
 $('addBtn').addEventListener('click', () => openSheet(null));
 
-// 點面板外的灰色區域也能關閉
+// 點面板外的灰色區域也能關閉，但已經輸入金額時不關，避免打到一半的資料不見
 $('sheet').addEventListener('click', (ev) => {
-  if (ev.target === $('sheet')) closeSheet();
+  if (ev.target === $('sheet') && !$('amount').value) closeSheet();
 });
 
 $('prevMonth').addEventListener('click', () => {

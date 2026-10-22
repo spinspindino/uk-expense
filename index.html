@@ -4,38 +4,44 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>英鎊記帳</title>
-  <meta name="theme-color" content="#1f6f5c">
+  <meta name="theme-color" content="#0a0a0c">
   <!-- 讓 iPhone「加入主畫面」後以全螢幕 app 的樣子開啟 -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="英鎊記帳">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600&family=Big+Shoulders+Display:wght@700;800&family=Cormorant+Garamond:ital,wght@1,500&family=IBM+Plex+Mono:wght@500&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="top">
     <button class="icon-btn" id="prevMonth" aria-label="上個月">‹</button>
-    <h1 id="monthTitle">2026 年 10 月</h1>
+    <h1 id="monthTitle">2026.10</h1>
     <button class="icon-btn" id="nextMonth" aria-label="下個月">›</button>
-    <button class="icon-btn menu-btn" id="exportBtn" aria-label="匯出 CSV" title="匯出 CSV">⤓</button>
+    <button class="icon-btn menu-btn" id="exportBtn" aria-label="匯出 CSV">CSV</button>
   </header>
 
   <main>
     <section class="summary">
       <div class="sum-block">
-        <span class="label">本月支出</span>
+        <span class="label">本月支出 · OUT</span>
         <span class="value" id="sumOut">£0.00</span>
       </div>
       <div class="sum-block">
-        <span class="label">本月收入</span>
+        <span class="label">本月收入 · IN</span>
         <span class="value income" id="sumIn">£0.00</span>
       </div>
     </section>
 
     <section id="list" class="list" aria-live="polite"></section>
-    <p id="empty" class="empty" hidden>這個月還沒有紀錄。<br>按右下角的 ＋ 記第一筆。</p>
+    <div id="empty" class="empty" hidden>
+      <p class="line">Nothing spent. Yet.</p>
+      <p class="label">按右下角的 ＋ 記第一筆</p>
+    </div>
   </main>
 
   <button class="fab" id="addBtn" aria-label="新增一筆">＋</button>
@@ -49,7 +55,7 @@
           <button type="button" data-value="支出" class="on">支出</button>
           <button type="button" data-value="收入">收入</button>
         </div>
-        <button type="submit" class="text-btn strong" id="saveBtn">儲存</button>
+        <button type="submit" class="save-btn" id="saveBtn">儲存</button>
       </div>
 
       <label class="amount-row">
@@ -58,18 +64,18 @@
       </label>
 
       <div class="field">
-        <span class="field-label">類別</span>
+        <span class="label">類別</span>
         <div class="chips" id="categoryChips"></div>
       </div>
 
       <div class="field">
-        <span class="field-label">付款方式</span>
+        <span class="label">付款方式</span>
         <div class="segmented wide" id="paySeg"></div>
       </div>
 
       <div class="field two">
         <label>
-          <span class="field-label">日期</span>
+          <span class="label">日期</span>
           <input type="date" id="date">
         </label>
         <label class="biz">
@@ -79,7 +85,7 @@
       </div>
 
       <label class="field">
-        <span class="field-label">說明（可不填）</span>
+        <span class="label">說明（可不填）</span>
         <input id="note" placeholder="例如：Tesco 買菜">
       </label>
 

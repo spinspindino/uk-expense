@@ -43,7 +43,7 @@ function formatPounds(pence) {
 }
 
 function parsePence(text) {
-  const cleaned = text.replace(/[£,\s]/g, '').replace('，', '.');
+  const cleaned = text.replace(/[£\s]/g, '').replace(/[,，]/g, '.');
   if (!/^\d+(\.\d{0,2})?$/.test(cleaned)) return null;
   return Math.round(parseFloat(cleaned) * 100);
 }
@@ -74,6 +74,7 @@ function render() {
   const inc = monthEntries.filter((e) => e.type === '收入').reduce((s, e) => s + e.pence, 0);
   $('sumOut').textContent = formatPounds(out);
   $('sumIn').textContent = formatPounds(inc);
+  fitSummary();
 
   const list = $('list');
   list.innerHTML = '';
@@ -98,6 +99,19 @@ function render() {
     for (const e of dayEntries) card.append(entryRow(e));
     list.append(card);
   }
+}
+
+// 本月合計的數字太長時縮小字級，讓它留在格子裡；支出和收入用同一個大小
+const SUMMARY_FONT_PX = 44;
+function fitSummary() {
+  const els = [$('sumOut'), $('sumIn')];
+  let size = SUMMARY_FONT_PX;
+  for (const el of els) {
+    el.style.fontSize = SUMMARY_FONT_PX + 'px';
+    const available = el.parentElement.clientWidth - 2 * 16;
+    if (el.offsetWidth > available) size = Math.min(size, Math.floor(SUMMARY_FONT_PX * available / el.offsetWidth));
+  }
+  for (const el of els) el.style.fontSize = size + 'px';
 }
 
 function entryRow(e) {
@@ -185,20 +199,43 @@ function openSheet(entry) {
   $('error').hidden = true;
   $('deleteBtn').hidden = !entry;
 
-  fitAmountWidth();
   renderTypeSeg();
   renderChips();
   renderPaySeg();
   $('sheet').showModal();
+  fitAmountWidth(); // 面板打開後才量得到寬度
   if (!entry) $('amount').focus();
 }
 
-// 金額欄寬度跟著字數變，讓 £ 符號一直貼著數字、整體置中
+// 金額欄：用一個看不見的「量尺」量出數字實際多寬，再把輸入欄設成剛好的寬度。
+// 數字太長放不下時，字級等比例縮小。
+const AMOUNT_FONT_PX = 72;
 function fitAmountWidth() {
   const el = $('amount');
-  el.style.width = Math.max(el.value.length || el.placeholder.length, 1) * 0.5 + 0.2 + 'em';
+  const measure = $('amountMeasure');
+  const available = $('form').clientWidth - 2 * 16 - 48; // 扣掉左右留白和 £ 的位置
+  measure.style.fontSize = AMOUNT_FONT_PX + 'px';
+  measure.textContent = el.value || el.placeholder;
+  const natural = measure.offsetWidth;
+  const size = natural > available ? Math.floor(AMOUNT_FONT_PX * available / natural) : AMOUNT_FONT_PX;
+  el.style.fontSize = size + 'px';
+  el.style.width = Math.ceil(natural * size / AMOUNT_FONT_PX) + 6 + 'px';
 }
-$('amount').addEventListener('input', fitAmountWidth);
+
+// 只接受數字和一個小數點，小數最多兩位；逗號當成小數點
+function cleanAmountInput() {
+  const el = $('amount');
+  let v = el.value.replace(/[,，]/g, '.').replace(/[^\d.]/g, '');
+  const dot = v.indexOf('.');
+  if (dot !== -1) v = v.slice(0, dot + 1) + v.slice(dot + 1).replace(/\./g, '').slice(0, 2);
+  const [whole, frac] = v.split('.');
+  v = whole.slice(0, 7) + (frac !== undefined ? '.' + frac : '');
+  if (v !== el.value) el.value = v;
+  fitAmountWidth();
+}
+$('amount').addEventListener('input', cleanAmountInput);
+// 字型下載完成後再量一次，避免用到備用字型時量錯
+if (document.fonts) document.fonts.ready.then(() => { fitAmountWidth(); fitSummary(); });
 
 function closeSheet() {
   $('sheet').close();
@@ -318,5 +355,7 @@ $('exportBtn').addEventListener('click', exportCsv);
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js');
 }
+// 請瀏覽器把資料當成「重要、不要自動清掉」
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
 
 render();

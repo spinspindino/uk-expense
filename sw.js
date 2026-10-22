@@ -1,7 +1,7 @@
 // Service worker：讓 app 沒網路也能打開。
 // 策略是「有網路就抓最新版，沒網路就用上次存下來的」，所以改版後重開就會更新。
 
-const CACHE = 'uk-expenses-v3';
+const CACHE = 'uk-expenses-v4';
 const FILES = [
   './',
   'index.html',

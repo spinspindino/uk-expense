@@ -24,7 +24,7 @@
     <button class="icon-btn" id="prevMonth" aria-label="上個月">‹</button>
     <h1 id="monthTitle">2026.10</h1>
     <button class="icon-btn" id="nextMonth" aria-label="下個月">›</button>
-    <button class="icon-btn menu-btn" id="exportBtn" aria-label="匯出 CSV">CSV</button>
+    <button class="icon-btn menu-btn" id="exportBtn" aria-label="匯出這個月的 CSV">CSV</button>
   </header>
 
   <main>
@@ -108,6 +108,12 @@
       </label>
 
       <p class="error" id="settingsError" hidden></p>
+
+      <div class="field">
+        <span class="label">備份</span>
+        <button type="button" class="link-btn" id="exportAllBtn">匯出全部紀錄</button>
+        <span class="hint">記帳頁右上的 CSV 只匯出正在看的那個月，檔名像 2026-10.csv。這裡一次匯出所有月份（檔名像 all-2026-10-24.csv），換手機前或想完整備份時用。</span>
+      </div>
     </form>
   </dialog>
 

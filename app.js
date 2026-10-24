@@ -522,16 +522,19 @@ function csvCell(v) {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-async function exportCsv() {
-  if (!entries.length) return alert('還沒有任何紀錄可以匯出。');
+// scope 'month'：只匯出正在看的月份，檔名 2026-10.csv，方便每月存一份到電腦
+// scope 'all'：所有紀錄，當完整備份
+async function exportCsv(scope) {
+  const list = scope === 'month' ? entries.filter((e) => e.date.startsWith(monthKey())) : entries;
+  if (!list.length) return alert(scope === 'month' ? '這個月還沒有紀錄可以匯出。' : '還沒有任何紀錄可以匯出。');
   // 欄位順序跟「英鎊開支追蹤」的記帳分頁一樣，方便貼回去
   const header = ['日期', '類型', '類別', '說明', '金額（£）', '付款方式', '業務成本', '備註'];
-  const rows = [...entries]
+  const rows = [...list]
     .sort((a, b) => a.date.localeCompare(b.date))
     .map((e) => [e.date, e.type, e.category, e.note, (e.pence / 100).toFixed(2), e.payment, e.business ? '是' : '否', '']);
   // 開頭的 ﻿ 讓 Numbers / Excel 正確認出中文
   const csv = '﻿' + [header, ...rows].map((r) => r.map(csvCell).join(',')).join('\n');
-  const filename = `英鎊記帳_${todayString()}.csv`;
+  const filename = scope === 'month' ? `${monthKey()}.csv` : `all-${todayString()}.csv`;
   const file = new File([csv], filename, { type: 'text/csv' });
 
   // iPhone 上用「分享」最順：可以存到檔案、AirDrop 到 Mac 或用 Numbers 開
@@ -551,7 +554,8 @@ async function exportCsv() {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-$('exportBtn').addEventListener('click', exportCsv);
+$('exportBtn').addEventListener('click', () => exportCsv('month'));
+$('exportAllBtn').addEventListener('click', () => exportCsv('all'));
 
 // ---- 離線可用：註冊 service worker ----
 if ('serviceWorker' in navigator) {

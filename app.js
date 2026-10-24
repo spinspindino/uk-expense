@@ -540,7 +540,7 @@ async function exportCsv(scope) {
   // iPhone 上用「分享」最順：可以存到檔案、AirDrop 到 Mac 或用 Numbers 開
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], title: filename });
+      await navigator.share({ files: [file] }); // 只帶檔案：多帶 title 的話 iPhone 會多存一個 text 檔
       return;
     } catch (err) {
       if (err.name === 'AbortError') return;
